@@ -1,269 +1,53 @@
-# 🏦 API de Consulta de Ofertas de Crédito
+![GEMP · Protótipo de integração de crédito](docs/cover.svg)
 
-consulta e simulação de ofertas de crédito, permitindo que usuários consultem instituições financeiras e simulem valores e taxas de juros. O front-end foi desenvolvido em Vue.js e o back-end em Laravel.
+# GEMP
 
----
+**Português** · [English](README.en.md)
 
-## 🚀 **Tecnologias Utilizadas**
+**Protótipo full stack de consulta e simulação de crédito.** A interface reúne instituições e modalidades devolvidas por uma API externa. A pessoa pode simular uma modalidade e visualizar os juros e os limites de valor e de parcelas recebidos do provedor.
 
--   **Back-end:** Laravel 10, MySQL, Swagger (l5-swagger)
--   **Front-end:** Vue.js 3, Tailwind CSS, Axios, Chart.js
--   **Documentação:** Swagger UI
--   **Banco de Dados:** MySQL
+## Da consulta à comparação
 
----
+1. A pessoa informa um CPF de teste. A tela Vue chama `POST /api/credit-offer` para consultar as instituições e modalidades.
+2. O Laravel valida o formato da entrada, consulta o provedor e registra a consulta, as instituições e as modalidades no banco local.
+3. Ao selecionar uma modalidade, a tela chama `POST /api/credit-simulation`. A aplicação repassa a solicitação ao provedor e a interface apresenta a resposta em um gráfico.
 
-## 🛠 **Pré-requisitos**
+O cálculo e as condições são fornecidos pelo serviço externo. O GEMP organiza a consulta e a visualização.
 
-Antes de rodar o projeto, instale as seguintes ferramentas:
+## Arquitetura e escolhas
 
--   [PHP 8+](https://www.php.net/)
--   [Composer](https://getcomposer.org/)
--   [Node.js 16+](https://nodejs.org/)
--   [MySQL 8+](https://www.mysql.com/)
--   [NPM ou Yarn](https://nodejs.org/)
-
----
-
-## 🏗 **Passo a Passo para Rodar o Projeto**
-
-### 🔹 **1. Clonar o Repositório**
-
-```sh
-git clone https://github.com/acamilateixeira/gosatAPI.git
-cd gosatAPI
+```mermaid
+flowchart LR
+    Vue["Vue 3 · seleção e gráfico"] --> Api["Laravel 11 · controllers e Form Requests"]
+    Api --> Services["Serviços de instituição e oferta"]
+    Services --> Db[("Eloquent · SQLite ou MySQL")]
+    Services --> External["Provedor externo de simulação"]
 ```
 
----
+| Decisão | Motivo |
+| --- | --- |
+| **Vue 3, Axios e Chart.js** | Manter a consulta e a comparação no mesmo fluxo, com um gráfico para as condições retornadas. |
+| **Laravel 11 com Form Requests e serviços** | Separar a validação HTTP das chamadas ao provedor e da persistência. A configuração padrão usa SQLite e também contempla MySQL. |
+| **Swagger / OpenAPI** | Dar uma referência do contrato da API. As rotas efetivas ficam em [`routes/api.php`](routes/api.php). |
+| **Validação TLS padrão do cliente HTTP** | A integração envia um identificador ao provedor. O cliente verifica o certificado do destino nas duas operações. |
 
-### 🔹 **2. Configurar o Back-end (Laravel)**
+## Rodar localmente
 
-#### **2.1 Instalar as Dependências**
+Use PHP 8.2 ou superior com a extensão SQLite, Composer e Node.js com npm. No diretório do repositório:
 
-```sh
+```bash
 composer install
-```
-
-#### **2.2 Criar o Arquivo `.env`**
-
-Copie o arquivo de configuração:
-
-```sh
-cp .env.example .env
-```
-
-#### **2.3 Configurar as Variáveis de Ambiente**
-
-Edite o arquivo `.env` e configure a conexão com o banco de dados:
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=credit_db
-DB_USERNAME=root
-DB_PASSWORD=sua_senha
-```
-
-#### **2.4 Criar o Banco de Dados**
-
-No MySQL, crie o banco de dados manualmente:
-
-```sql
-CREATE DATABASE credit_db;
-```
-
-Ou use um cliente MySQL como **phpMyAdmin** ou **MySQL Workbench**.
-
-#### **2.5 Rodar as Migrations**
-
-```sh
-php artisan migrate
-```
-
-Se quiser popular o banco com dados de teste:
-
-```sh
-php artisan db:seed
-```
-
-#### **2.6 Gerar a Chave da Aplicação**
-
-```sh
+cp -n .env.example .env
 php artisan key:generate
-```
-
-#### **2.7 Migrate**
-
-Caso necessário, execute:
-
-```sh
+touch database/database.sqlite
 php artisan migrate
+npm ci
+npm run build
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-#### **2.8 Gerar a Documentação da API (Swagger)**
+Abra `http://127.0.0.1:8000`. A interface do Swagger é configurada em `/api/documentation`. Para comparar o contrato com o código, consulte [as rotas](routes/api.php) e [os serviços](app/Services).
 
-```sh
-php artisan l5-swagger:generate
-```
+## Limites atuais
 
-Acesse no navegador:
-
-```
-http://127.0.0.1:8000/api/documentation
-```
-
-#### **2.9 Rodar o Servidor Laravel**
-
-```sh
-php artisan serve
-```
-
-A API estará rodando em:
-
-```
-http://127.0.0.1:8000
-```
-
----
-
-### 🔹 **3. Configurar o Front-end (Vue.js)**
-
-#### **3.1 Instalar as Dependências**
-
-```sh
-cd resources/js
-npm install
-```
-
-#### **3.2 Configurar o Tailwind CSS**
-
-```sh
-npx tailwindcss init -p
-```
-
-Certifique-se de que o arquivo `tailwind.config.js` está assim:
-
-```js
-module.exports = {
-    content: ["./resources/**/*.blade.php", "./resources/**/*.vue"],
-    theme: {
-        extend: {},
-    },
-    plugins: [],
-};
-```
-
-#### **3.3 Rodar o Front-end**
-
-```sh
-npm run dev
-```
-
-## 🎯 **Rotas da API**
-
-### 📌 **Consultar Ofertas**
-
-```http
-POST /api/credit-offer
-```
-
-#### **Body:**
-
-```json
-{
-    "cpf": "1111111111"
-}
-```
-
-#### **Resposta:**
-
-```json
-{
-    "instituicoes": [
-        {
-            "nome": "Banco A",
-            "modalidades": [{ "nome": "Crédito Pessoal", "cod": "001" }]
-        }
-    ]
-}
-```
-
----
-
-### 📌 **Simular Oferta**
-
-```http
-POST /api/credit-simulation
-```
-
-#### **Body:**
-
-```json
-{
-    "cpf": "11111111111",
-    "institution_id": 1,
-    "codModalidade": "13"
-}
-```
-
-#### **Resposta:**
-
-```json
-{
-    "QntParcelaMin": 12,
-    "QntParcelaMax": 48,
-    "valorMin": 5000,
-    "valorMax": 8000,
-    "jurosMes": 0.0495
-}
-```
-
----
-
-## 🔧 **Comandos Úteis**
-
-### **Limpando Cache**
-
-```sh
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-```
-
-### **Recriando Banco de Dados**
-
-```sh
-php artisan migrate:fresh --seed
-```
-
-### **Gerando Documentação do Swagger**
-
-```sh
-php artisan l5-swagger:generate
-```
-
----
-
-## 🖥 **Acessando o Projeto**
-
--   **Documentação Swagger:** `http://127.0.0.1:8000/api/documentation`
--   **Front-end:** `http://127.0.0.1:8000`
-
----
-
-🚀 **Agora você está pronto para rodar e testar a API!** 😊
-
-```
-
-### **📌 O que tem no README:**
-✔️ Instalação do Laravel
-✔️ Configuração do Banco de Dados
-✔️ Instalação do Front-end Vue.js
-✔️ Rotas da API
-✔️ Como rodar Swagger
-✔️ Comandos úteis
-✔️ Links de acesso
-
-```
+A consulta ao vivo depende do ambiente externo de simulação. Use dados de teste autorizados pelo provedor. Os [testes de feature](tests/Feature) incluem respostas simuladas para as duas chamadas. A publicação de uma demo independente exige um provedor simulado e revisão do mapeamento entre IDs locais e IDs devolvidos pelo provedor.

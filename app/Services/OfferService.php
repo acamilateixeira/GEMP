@@ -32,8 +32,7 @@ class OfferService
         }
 
         // Consultar API Externa
-        $response = Http::withOptions(['verify' => false])
-            ->post('https://dev.gosat.org/api/v1/simulacao/oferta', [
+        $response = Http::post('https://dev.gosat.org/api/v1/simulacao/oferta', [
                 'cpf' => $cpf,
                 'instituicao_id' => $institutionId,
                 'codModalidade' => $modalityCode,

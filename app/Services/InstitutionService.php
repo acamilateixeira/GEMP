@@ -13,8 +13,7 @@ class InstitutionService
     {
         $cpfQuery = CPFQuery::firstOrCreate(['cpf' => $cpf]);
 
-        $response = Http::withOptions(['verify' => false])
-            ->post('https://dev.gosat.org/api/v1/simulacao/credito', ['cpf' => $cpf]);
+        $response = Http::post('https://dev.gosat.org/api/v1/simulacao/credito', ['cpf' => $cpf]);
 
         if ($response->failed()) {
             throw new \Exception('Erro ao consultar a API externa');
