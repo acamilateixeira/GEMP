@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "GEMP — provider failure lab",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "header": []
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Three offers in total cost order",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/comparisons",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"principal_cents\": 500000, \"months\": 12, \"scenario\": \"normal\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const offers = pm.response.json().offers;",
+              "pm.test('Three ordered offers', () => { pm.expect(offers).to.have.length(3); pm.expect(offers.map(x => x.total_cents)).to.eql(offers.map(x => x.total_cents).sort((a, b) => a - b)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Two offers after a timeout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/comparisons",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"principal_cents\": 500000, \"months\": 12, \"scenario\": \"one_slow\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Two offers and a failed provider', () => { const body = pm.response.json(); pm.expect(body.offers).to.have.length(2); pm.expect(body.failures).to.have.length(1); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "All providers unavailable",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/comparisons",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"principal_cents\": 500000, \"months\": 12, \"scenario\": \"all_unavailable\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 503', () => pm.response.to.have.status(503));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid scenario",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/comparisons",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"principal_cents\": 500000, \"months\": 12, \"scenario\": \"unknown\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

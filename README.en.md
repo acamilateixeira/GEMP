@@ -55,3 +55,7 @@ go vet ./...
 ```
 
 Tests cover parallel calls, cancellation, provider timeouts, invalid offers, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend.
+
+## Postman, Insomnia, and verification
+
+Import the [GEMP collection](docs/postman.collection.json) into Postman or Insomnia. With the API running, run the collection to check three sorted offers, partial availability, total failure, and an invalid scenario.

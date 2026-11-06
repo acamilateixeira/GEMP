@@ -55,3 +55,7 @@ go vet ./...
 ```
 
 Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, IDs iguais entre provedores, custo total e respostas HTTP. O [CI](.github/workflows/ci.yml) também compila a interface.
+
+## Postman, Insomnia e verificação
+
+Importe a [coleção GEMP](docs/postman.collection.json) no Postman ou Insomnia. Com a API aberta, rode a coleção para conferir três ofertas ordenadas, resposta parcial, indisponibilidade total e cenário inválido.
