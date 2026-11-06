@@ -1,53 +1,57 @@
-![GEMP · Credit integration prototype](docs/cover.svg)
+![GEMP · Credit integration lab](docs/cover.svg)
 
 # GEMP
 
 [Português](README.md) · **English**
 
-**A full-stack credit lookup and simulation prototype.** The interface brings together financial institutions and credit types returned by an external API. Users can simulate a credit type and visualize the provider's interest rate, amount limits, and installment ranges.
+**A fictional credit comparison tool built with Go and React and TypeScript.** A lower monthly rate can come with a higher upfront fee. GEMP compares total cost and shows what the UI can still deliver when a provider is slow or unavailable.
 
-## From lookup to comparison
+## Try three scenarios
 
-1. Enter a test CPF, a Brazilian taxpayer identifier. The Vue interface calls `POST /api/credit-offer` to retrieve institutions and credit types.
-2. Laravel validates the input format, queries the provider, and records the lookup, institutions, and credit types in the local database.
-3. Selecting a credit type calls `POST /api/credit-simulation`. The application sends the request to the provider and plots the response.
+| Scenario | Result |
+| --- | --- |
+| **All providers respond** | Three offers sorted by total cost. Compare monthly rates, installments, and upfront fees. |
+| **One provider times out** | Two offers remain visible, and the UI identifies the timed-out provider. |
+| **All providers are unavailable** | The API returns HTTP 503, and the UI explains that there are no offers in that scenario. |
 
-The external provider supplies the simulation results and terms. GEMP organizes the lookup and presentation.
+The providers are simulated in the application process. The form takes an amount, term, and scenario. All rates are fictional. The illustrative total is the sum of rounded installments and the upfront fee.
 
 ## Architecture and decisions
 
 ```mermaid
 flowchart LR
-    Vue["Vue 3 · selection and chart"] --> Api["Laravel 11 · controllers and Form Requests"]
-    Api --> Services["Institution and offer services"]
-    Services --> Db[("Eloquent · SQLite or MySQL")]
-    Services --> External["External simulation provider"]
+    UI["React + TypeScript"] -->|"POST /api/comparisons"| API["Go · net/http"]
+    API --> C["Comparator · per-provider deadline"]
+    C --> A["Aurora"]
+    C --> P["Ponte"]
+    C --> V["Vale"]
 ```
 
-| Decision | Rationale |
-| --- | --- |
-| **Vue 3, Axios, and Chart.js** | Keep lookup and comparison in one flow, with a chart for the returned terms. |
-| **Laravel 11 with Form Requests and services** | Separate HTTP validation from provider calls and persistence. The default configuration uses SQLite and also supports MySQL. |
-| **Swagger / OpenAPI** | Provide an API contract reference. The active routes live in [`routes/api.php`](routes/api.php). |
-| **Default HTTP client TLS verification** | The integration sends an identifier to the provider. The client verifies the destination certificate for both operations. |
+- **Go for integration.** The `Provider` interface separates comparison from the source of the offers. Parallel calls use `context.Context` for cancellation and an independent 250 ms deadline per provider.
+- **Server-side normalization and ranking.** Each offer ID combines the provider identifier and its local offer ID to prevent collisions. Offers are sorted by total cost in cents, with the ID breaking ties.
+- **React and TypeScript for API states.** The UI distinguishes loading, partial results, complete unavailability, and communication failure. Go serves the assets and API from the same origin.
 
-## Run locally
+## Run and test
 
-Use PHP 8.2 or newer with SQLite support, Composer, and Node.js with npm. From the repository root:
+Use Go 1.27.3 and Node.js 22.12 or newer in the 22.x release line.
 
 ```bash
-composer install
-cp -n .env.example .env
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate
 npm ci
 npm run build
-php artisan serve --host=127.0.0.1 --port=8000
+go run ./cmd/gemp
 ```
 
-Open `http://127.0.0.1:8000`. Swagger UI is configured at `/api/documentation`. Compare the contract with the [routes](routes/api.php) and [services](app/Services).
+Open `http://127.0.0.1:8080`. To exercise the partial result directly:
 
-## Current limits
+```bash
+curl -sS http://127.0.0.1:8080/api/comparisons \
+  -H 'Content-Type: application/json' \
+  -d '{"principal_cents":500000,"months":12,"scenario":"one_slow"}'
+```
 
-Live lookup depends on the external simulation environment. Use provider-approved test data. The [feature tests](tests/Feature) include stub responses for both calls. A standalone public demo needs a simulated provider and a review of how local institution IDs map to provider IDs.
+```bash
+go test -race ./...
+go vet ./...
+```
+
+Tests cover parallel calls, cancellation, provider timeouts, invalid offers, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend.

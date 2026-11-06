@@ -1,53 +1,57 @@
-![GEMP · Protótipo de integração de crédito](docs/cover.svg)
+![GEMP · Laboratório de integração de crédito](docs/cover.svg)
 
 # GEMP
 
 **Português** · [English](README.en.md)
 
-**Protótipo full stack de consulta e simulação de crédito.** A interface reúne instituições e modalidades devolvidas por uma API externa. A pessoa pode simular uma modalidade e visualizar os juros e os limites de valor e de parcelas recebidos do provedor.
+**Comparador de crédito fictício em Go e React e TypeScript.** Uma taxa mensal menor pode vir com uma tarifa inicial maior. O GEMP compara o custo total das ofertas e mostra o que a interface ainda consegue entregar quando um provedor demora ou fica fora do ar.
 
-## Da consulta à comparação
+## Explore três cenários
 
-1. A pessoa informa um CPF de teste. A tela Vue chama `POST /api/credit-offer` para consultar as instituições e modalidades.
-2. O Laravel valida o formato da entrada, consulta o provedor e registra a consulta, as instituições e as modalidades no banco local.
-3. Ao selecionar uma modalidade, a tela chama `POST /api/credit-simulation`. A aplicação repassa a solicitação ao provedor e a interface apresenta a resposta em um gráfico.
+| Cenário | Resultado |
+| --- | --- |
+| **Todos respondem** | Três ofertas ordenadas pelo custo total. Compare a taxa mensal, o valor de cada parcela e a tarifa inicial. |
+| **Um provedor excede o prazo** | Duas ofertas são exibidas, com indicação do provedor que excedeu o prazo. |
+| **Todos indisponíveis** | A API devolve HTTP 503 e a interface explica que não há oferta disponível naquele cenário. |
 
-O cálculo e as condições são fornecidos pelo serviço externo. O GEMP organiza a consulta e a visualização.
+Os provedores são simulados no próprio processo. O formulário recebe valor, prazo e cenário. As taxas são fictícias. O custo ilustrativo soma as parcelas arredondadas e a tarifa inicial.
 
-## Arquitetura e escolhas
+## Arquitetura e decisões
 
 ```mermaid
 flowchart LR
-    Vue["Vue 3 · seleção e gráfico"] --> Api["Laravel 11 · controllers e Form Requests"]
-    Api --> Services["Serviços de instituição e oferta"]
-    Services --> Db[("Eloquent · SQLite ou MySQL")]
-    Services --> External["Provedor externo de simulação"]
+    UI["React + TypeScript"] -->|"POST /api/comparisons"| API["Go · net/http"]
+    API --> C["Comparador · prazo por provedor"]
+    C --> A["Aurora"]
+    C --> P["Ponte"]
+    C --> V["Vale"]
 ```
 
-| Decisão | Motivo |
-| --- | --- |
-| **Vue 3, Axios e Chart.js** | Manter a consulta e a comparação no mesmo fluxo, com um gráfico para as condições retornadas. |
-| **Laravel 11 com Form Requests e serviços** | Separar a validação HTTP das chamadas ao provedor e da persistência. A configuração padrão usa SQLite e também contempla MySQL. |
-| **Swagger / OpenAPI** | Dar uma referência do contrato da API. As rotas efetivas ficam em [`routes/api.php`](routes/api.php). |
-| **Validação TLS padrão do cliente HTTP** | A integração envia um identificador ao provedor. O cliente verifica o certificado do destino nas duas operações. |
+- **Go para a integração.** A interface `Provider` separa a comparação da origem das ofertas. Chamadas paralelas usam `context.Context` para cancelar a busca e impor um prazo independente de 250 ms por provedor.
+- **Normalização e ordenação no servidor.** O ID da oferta combina o identificador do provedor com o ID devolvido por ele. Isso evita colisões entre catálogos. A ordenação usa o total em centavos e desempata por ID.
+- **React e TypeScript para apresentar os estados da API.** O front-end distingue espera, resposta parcial, indisponibilidade total e falha de comunicação. A aplicação Go serve os assets e a API na mesma origem.
 
-## Rodar localmente
+## Rodar e testar
 
-Use PHP 8.2 ou superior com a extensão SQLite, Composer e Node.js com npm. No diretório do repositório:
+Use Go 1.27.3 e Node.js 22.12 ou superior na série 22.
 
 ```bash
-composer install
-cp -n .env.example .env
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate
 npm ci
 npm run build
-php artisan serve --host=127.0.0.1 --port=8000
+go run ./cmd/gemp
 ```
 
-Abra `http://127.0.0.1:8000`. A interface do Swagger é configurada em `/api/documentation`. Para comparar o contrato com o código, consulte [as rotas](routes/api.php) e [os serviços](app/Services).
+Abra `http://127.0.0.1:8080`. Para testar a resposta parcial diretamente:
 
-## Limites atuais
+```bash
+curl -sS http://127.0.0.1:8080/api/comparisons \
+  -H 'Content-Type: application/json' \
+  -d '{"principal_cents":500000,"months":12,"scenario":"one_slow"}'
+```
 
-A consulta ao vivo depende do ambiente externo de simulação. Use dados de teste autorizados pelo provedor. Os [testes de feature](tests/Feature) incluem respostas simuladas para as duas chamadas. A publicação de uma demo independente exige um provedor simulado e revisão do mapeamento entre IDs locais e IDs devolvidos pelo provedor.
+```bash
+go test -race ./...
+go vet ./...
+```
+
+Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, IDs iguais entre provedores, custo total e respostas HTTP. O [CI](.github/workflows/ci.yml) também compila a interface.

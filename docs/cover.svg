@@ -6,8 +6,8 @@
     <path d="M738 136l65-37 48 17 66-55"/>
   </g>
   <g font-family="system-ui,sans-serif">
-    <text x="52" y="65" fill="#d2f0bd" font-size="16" letter-spacing="3" font-weight="720">CREDIT INTEGRATION PROTOTYPE</text>
+    <text x="52" y="65" fill="#d2f0bd" font-size="16" letter-spacing="3" font-weight="720">CREDIT INTEGRATION LAB</text>
     <text x="49" y="162" fill="#f4f9ff" font-size="100" font-weight="800" letter-spacing="-4">GEMP</text>
-    <text x="54" y="220" fill="#d4e6f4" font-size="22">Laravel · Vue · OpenAPI</text>
+    <text x="54" y="220" fill="#d4e6f4" font-size="22">Go · React and TypeScript · Provider simulation</text>
   </g>
 </svg>
