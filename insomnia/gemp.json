@@ -1,0 +1,116 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-11-09T19:00:00.000Z",
+  "__export_source": "gemp",
+  "resources": [
+    {
+      "_id": "wrk_gemp",
+      "_type": "workspace",
+      "name": "GEMP",
+      "description": "Comparador de crédito fictício. Rode `go run ./cmd/gemp` e use o ambiente base.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_gemp",
+      "_type": "environment",
+      "parentId": "wrk_gemp",
+      "name": "Base",
+      "data": {
+        "base_url": "http://127.0.0.1:8080"
+      }
+    },
+    {
+      "_id": "req_gemp_1",
+      "_type": "request",
+      "parentId": "wrk_gemp",
+      "name": "1. Health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "metaSortKey": 1,
+      "headers": [],
+      "body": {},
+      "authentication": {}
+    },
+    {
+      "_id": "req_gemp_2",
+      "_type": "request",
+      "parentId": "wrk_gemp",
+      "name": "2. Three offers in total cost order",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/comparisons",
+      "metaSortKey": 2,
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"principal_cents\": 500000,\n  \"months\": 12,\n  \"scenario\": \"normal\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_gemp_3",
+      "_type": "request",
+      "parentId": "wrk_gemp",
+      "name": "3. Two offers after a timeout",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/comparisons",
+      "metaSortKey": 3,
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"principal_cents\": 500000,\n  \"months\": 12,\n  \"scenario\": \"one_slow\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_gemp_4",
+      "_type": "request",
+      "parentId": "wrk_gemp",
+      "name": "4. All providers unavailable",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/comparisons",
+      "metaSortKey": 4,
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"principal_cents\": 500000,\n  \"months\": 12,\n  \"scenario\": \"all_unavailable\"\n}"
+      },
+      "authentication": {}
+    },
+    {
+      "_id": "req_gemp_5",
+      "_type": "request",
+      "parentId": "wrk_gemp",
+      "name": "5. Invalid scenario",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/comparisons",
+      "metaSortKey": 5,
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"principal_cents\": 500000,\n  \"months\": 12,\n  \"scenario\": \"unknown\"\n}"
+      },
+      "authentication": {}
+    }
+  ]
+}

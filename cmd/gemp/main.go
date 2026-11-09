@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/acamilateixeira/GEMP/internal/api"
 	"github.com/acamilateixeira/GEMP/internal/credit"
 )
 
@@ -34,22 +34,11 @@ func handler(providers []credit.Provider, site http.Handler) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /api/comparisons", func(w http.ResponseWriter, r *http.Request) {
-		var input credit.Request
-		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&input); err != nil || decoder.Decode(new(any)) != io.EOF || !input.Valid() {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_request"})
-			return
-		}
-		result, err := credit.Compare(r.Context(), input, providers, 250*time.Millisecond)
-		if err != nil {
+		status, payload, ok := api.Compare(r.Context(), http.MaxBytesReader(w, r.Body, 4096), providers)
+		if !ok {
 			return // The client canceled the request.
 		}
-		status := http.StatusOK
-		if result.Status == "unavailable" {
-			status = http.StatusServiceUnavailable
-		}
-		writeJSON(w, status, result)
+		writeJSON(w, status, payload)
 	})
 	mux.Handle("/", site)
 	return mux
