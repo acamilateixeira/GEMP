@@ -2,7 +2,7 @@
 
 # GEMP
 
-[Português](README.md) · **English**
+[Português](README.md) · **English** · **[Open the demo](https://acamilateixeira.github.io/GEMP/)**
 
 **A fictional credit comparison tool built with Go and React and TypeScript.** A lower monthly rate can come with a higher upfront fee. GEMP compares total cost and shows what the UI can still deliver when a provider is slow or unavailable.
 
@@ -13,6 +13,8 @@
 | **All providers respond** | Three offers sorted by total cost. Compare monthly rates, installments, and upfront fees. |
 | **One provider times out** | Two offers remain visible, and the UI identifies the timed-out provider. |
 | **All providers are unavailable** | The API returns HTTP 503, and the UI explains that there are no offers in that scenario. |
+
+The [published demo](https://acamilateixeira.github.io/GEMP/) runs all three scenarios with nothing to install. It has no server: the same Go code as the API is compiled to WebAssembly and runs in the browser, with parallel provider calls and the 250 ms deadline per provider.
 
 The providers are simulated in the application process. The form takes an amount, term, and scenario. All rates are fictional. The illustrative total is the sum of rounded installments and the upfront fee.
 
@@ -29,6 +31,7 @@ flowchart LR
 
 - **Go for integration.** The `Provider` interface separates comparison from the source of the offers. Parallel calls use `context.Context` for cancellation and an independent 250 ms deadline per provider.
 - **Server-side normalization and ranking.** Each offer ID combines the provider identifier and its local offer ID to prevent collisions. Offers are sorted by total cost in cents, with the ID breaking ties.
+- **One rule, two places.** The `internal/api` package decodes, validates, and compares without `net/http`. The server and the WebAssembly build (`cmd/gemp-wasm`) call the same function, and CI checks that the WebAssembly build answers like the API.
 - **React and TypeScript for API states.** The UI distinguishes loading, partial results, complete unavailability, and communication failure. Go serves the assets and API from the same origin.
 
 ## Run and test
@@ -54,8 +57,8 @@ go test -race ./...
 go vet ./...
 ```
 
-Tests cover parallel calls, cancellation, provider timeouts, invalid offers, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend.
+Tests cover parallel calls, cancellation, provider timeouts, invalid offers, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend and runs the WebAssembly build against the same scenarios (`scripts/wasm-smoke.cjs`). Every change on `main` publishes the page to GitHub Pages through the [demo workflow](.github/workflows/pages.yml).
 
 ## Postman, Insomnia, and verification
 
-Import the [GEMP collection](docs/postman.collection.json) into Postman or Insomnia. With the API running, run the collection to check three sorted offers, partial availability, total failure, and an invalid scenario.
+Import the [Postman collection](docs/postman.collection.json) or the [Insomnia collection](insomnia/gemp.json). With the API running, run the collection to check three sorted offers, partial availability, total failure, and an invalid scenario.

@@ -2,3 +2,5 @@
 /dist/
 /gemp
 .DS_Store
+/frontend/public/gemp.wasm
+/frontend/public/wasm_exec.js

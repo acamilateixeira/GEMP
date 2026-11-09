@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { postComparison, runsInBrowser, warmUp } from './api';
 
 type Scenario = 'normal' | 'one_slow' | 'all_unavailable';
 type Offer = {
@@ -34,6 +35,8 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(warmUp, []);
+
     async function compare(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (loading) return;
@@ -46,13 +49,10 @@ export default function App() {
         }
         setLoading(true);
         try {
-            const response = await fetch('/api/comparisons', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ principal_cents: Math.round(principal * 100), months, scenario }),
-            });
-            const result: Result = await response.json();
-            if (!response.ok && !(response.status === 503 && result.status === 'unavailable')) {
+            const response = await postComparison({ principal_cents: Math.round(principal * 100), months, scenario });
+            const result = response.body as Result;
+            const ok = response.status >= 200 && response.status < 300;
+            if (!ok && !(response.status === 503 && result.status === 'unavailable')) {
                 throw new Error('comparison request failed');
             }
             setComparison({ months, result });
@@ -68,7 +68,7 @@ export default function App() {
             <header className="top">
                 <div className="wrap top-inner">
                     <strong className="brand">GEMP</strong>
-                    <span className="tag">Ambiente de demonstração</span>
+                    <span className="tag">{runsInBrowser ? 'Demo no navegador · Go em WebAssembly' : 'Ambiente de demonstração'}</span>
                 </div>
             </header>
             <main className="wrap">
@@ -76,6 +76,9 @@ export default function App() {
                     <p className="eyebrow">LABORATÓRIO DE INTEGRAÇÃO</p>
                     <h1>Compare ofertas de crédito</h1>
                     <p>Veja quanto cada oferta fictícia custa no total e experimente o que acontece quando um provedor atrasa ou fica indisponível.</p>
+                    {runsInBrowser && (
+                        <p className="hint">Esta página não tem servidor. Ela roda o mesmo código Go da API, compilado para WebAssembly: as três consultas em paralelo e o prazo de 250 ms por provedor acontecem no seu navegador.</p>
+                    )}
                 </section>
                 <div className="grid">
                     <section className="panel" aria-labelledby="setup">
