@@ -14,6 +14,8 @@
 | **Um provedor excede o prazo** | Duas ofertas são exibidas, com indicação do provedor que excedeu o prazo. |
 | **Todos indisponíveis** | A API devolve HTTP 503 e a interface explica que não há oferta disponível naquele cenário. |
 
+Na lista, dá para reordenar por custo total, parcela, taxa ou tarifa, filtrar ofertas sem tarifa inicial e abrir a composição do custo (juros, tarifa e diferença para a mais barata). Durante a consulta, **Cancelar** interrompe as chamadas aos provedores; se a comparação inteira passar de 5 s, o cliente cancela sozinho.
+
 A [demo publicada](https://acamilateixeira.github.io/GEMP/) roda os três cenários sem instalar nada. Ela não tem servidor: o mesmo código Go da API é compilado para WebAssembly e roda no navegador, com as consultas em paralelo e o prazo de 250 ms por provedor.
 
 Os provedores são simulados no próprio processo. O formulário recebe valor, prazo e cenário. As taxas são fictícias. O custo ilustrativo soma as parcelas arredondadas e a tarifa inicial.
@@ -32,11 +34,13 @@ flowchart LR
 - **Go para a integração.** A interface `Provider` separa a comparação da origem das ofertas. Chamadas paralelas usam `context.Context` para cancelar a busca e impor um prazo independente de 250 ms por provedor.
 - **Normalização e ordenação no servidor.** O ID da oferta combina o identificador do provedor com o ID devolvido por ele. Isso evita colisões entre catálogos. A ordenação usa o total em centavos e desempata por ID.
 - **Uma regra, dois lugares.** O pacote `internal/api` decodifica, valida e compara sem depender de `net/http`. O servidor e o build WebAssembly (`cmd/gemp-wasm`) chamam a mesma função, e o CI confere que o WebAssembly responde como a API.
-- **React e TypeScript para apresentar os estados da API.** O front-end distingue espera, resposta parcial, indisponibilidade total e falha de comunicação. A aplicação Go serve os assets e a API na mesma origem.
+- **React e TypeScript para apresentar os estados da API.** O front-end distingue espera, resposta parcial, indisponibilidade total, cancelamento, prazo excedido e falha de comunicação. A aplicação Go serve os assets e a API na mesma origem.
+- **Cancelamento real, não visual.** O `AbortSignal` do botão Cancelar aborta o `fetch` (o servidor vê o contexto da requisição cancelado) ou, na demo, cancela o `context.Context` que os provedores recebem dentro do WebAssembly. A promessa devolve 499 para a interface distinguir cancelamento de falha.
+- **Valores em centavos inteiros também no navegador.** O valor digitado é convertido em centavos por texto, sem ponto flutuante (`0,29` vira 29, não 28,999…). Ordenação, filtro e composição do custo ficam em `frontend/src/offers.ts`, sem React, para serem testados isoladamente.
 
 ## Rodar e testar
 
-Use Go 1.27.3 e Node.js 22.12 ou superior na série 22.
+Use Go 1.27.3 e Node.js 22.18 ou superior na série 22 (os testes do front-end usam a remoção de tipos nativa do Node).
 
 ```bash
 npm ci
@@ -55,9 +59,10 @@ curl -sS http://127.0.0.1:8080/api/comparisons \
 ```bash
 go test -race ./...
 go vet ./...
+npm test   # regras da lista de ofertas (node:test)
 ```
 
-Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, provedor que entra em panic, IDs iguais entre provedores, custo total e respostas HTTP. O [CI](.github/workflows/ci.yml) também compila a interface e roda o build WebAssembly contra os mesmos cenários (`scripts/wasm-smoke.cjs`). A cada mudança na `main`, o [workflow da demo](.github/workflows/pages.yml) publica a página no GitHub Pages.
+Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, provedor que entra em panic, IDs iguais entre provedores, custo total e respostas HTTP. Os testes do front-end cobrem ordenação, desempate, filtro, composição do custo e a conversão do valor digitado em centavos. O [CI](.github/workflows/ci.yml) também compila a interface e roda o build WebAssembly contra os mesmos cenários, incluindo o cancelamento antes e durante a consulta (`scripts/wasm-smoke.cjs`). A cada mudança na `main`, o [workflow da demo](.github/workflows/pages.yml) publica a página no GitHub Pages.
 
 ## Postman, Insomnia e verificação
 
