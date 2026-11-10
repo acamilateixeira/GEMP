@@ -35,4 +35,18 @@ dl { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; margin: 8px
 dt { color: #526979; }
 dd { margin: 1px 0 0; font-weight: 700; }
 footer { margin: 24px 0; }
+.field-help { margin: 5px 0 0; font-size: 12px; color: #526979; }
+.actions { display: flex; gap: 8px; }
+.actions button { flex: 1; }
+button.secondary { background: #fff; color: #245f53; border: 1px solid #245f53; cursor: pointer; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; margin-top: 14px; }
+.toolbar > div { flex: 1 1 180px; }
+.toolbar label { margin-top: 0; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 600; min-height: 40px; margin: 0; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: #245f53; }
+.count { margin: 12px 0 0; font-size: 13px; color: #526979; }
+details { margin-top: 10px; font-size: 13px; }
+summary { cursor: pointer; font-weight: 700; color: #245f53; padding: 4px 0; }
+.breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 18px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
 @media (max-width: 720px) { .grid { grid-template-columns: minmax(0, 1fr); } .intro { padding-top: 32px; } }

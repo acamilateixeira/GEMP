@@ -25,5 +25,21 @@ const cases = [
         console.log(`${ok ? '✓' : '✗'} ${name}: HTTP ${response.status}, ${result.status ?? result.error}, ${(result.offers ?? []).length} offers`);
         if (!ok) failed++;
     }
+
+    // Cancelamento: o AbortSignal cancela o mesmo context.Context que os provedores recebem.
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 20); // antes do provedor mais rápido (55 ms)
+    const started = Date.now();
+    const canceled = await globalThis.gempCompare('{"principal_cents":500000,"months":12}', controller.signal);
+    const elapsed = Date.now() - started;
+    const cancelOk = canceled.status === 499 && JSON.parse(canceled.body).error === 'canceled' && elapsed < 55;
+    console.log(`${cancelOk ? '✓' : '✗'} canceled: HTTP ${canceled.status} after ${elapsed} ms`);
+    if (!cancelOk) failed++;
+
+    const preAborted = await globalThis.gempCompare('{"principal_cents":500000,"months":12}', AbortSignal.abort());
+    const preOk = preAborted.status === 499;
+    console.log(`${preOk ? '✓' : '✗'} already aborted: HTTP ${preAborted.status}`);
+    if (!preOk) failed++;
+
     process.exit(failed ? 1 : 0);
 })().catch((error) => { console.error(error); process.exit(1); });

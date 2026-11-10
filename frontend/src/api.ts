@@ -4,7 +4,7 @@ type GoRuntime = { importObject: WebAssembly.Imports; run(instance: WebAssembly.
 declare global {
     interface Window {
         Go?: new () => GoRuntime;
-        gempCompare?: (body: string) => Promise<{ status: number; body: string }>;
+        gempCompare?: (body: string, signal?: AbortSignal) => Promise<{ status: number; body: string }>;
     }
 }
 
@@ -48,17 +48,31 @@ export function warmUp(): void {
     if (runsInBrowser) void startGo().catch(() => undefined);
 }
 
-export async function postComparison(payload: object): Promise<ApiResponse> {
+/** Status usado pela demo WebAssembly quando o AbortSignal cancela a comparação. */
+export const STATUS_CANCELED = 499;
+
+/**
+ * Envia a comparação. O `signal` cancela de verdade nos dois caminhos: no HTTP
+ * aborta o fetch (o servidor vê o contexto da requisição cancelado); no
+ * WebAssembly cancela o context.Context que os provedores recebem.
+ */
+export async function postComparison(payload: object, signal?: AbortSignal): Promise<ApiResponse> {
     if (runsInBrowser) {
         await startGo();
         if (!window.gempCompare) throw new Error('comparison not available');
-        const response = await window.gempCompare(JSON.stringify(payload));
+        const response = await window.gempCompare(JSON.stringify(payload), signal);
         return { status: response.status, body: JSON.parse(response.body) as unknown };
     }
-    const response = await fetch('/api/comparisons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-    return { status: response.status, body: (await response.json()) as unknown };
+    try {
+        const response = await fetch('/api/comparisons', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal,
+        });
+        return { status: response.status, body: (await response.json()) as unknown };
+    } catch (error) {
+        if (signal?.aborted) return { status: STATUS_CANCELED, body: { error: 'canceled' } };
+        throw error;
+    }
 }
