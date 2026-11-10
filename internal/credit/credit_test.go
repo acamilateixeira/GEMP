@@ -88,3 +88,24 @@ func TestComparePropagatesClientCancellation(t *testing.T) {
 		t.Fatalf("want context.Canceled, got %v", err)
 	}
 }
+
+func TestComparePanickingProviderBecomesFailureInsteadOfCrashing(t *testing.T) {
+	healthy := testProvider{"Healthy", func(context.Context, Request) (Terms, error) {
+		return Terms{ExternalID: "ok", MonthlyRateBP: 150}, nil
+	}}
+	broken := testProvider{"Broken", func(context.Context, Request) (Terms, error) {
+		var terms *Terms
+		return *terms, nil // nil dereference inside a third-party adapter
+	}}
+	result, err := Compare(context.Background(), Request{PrincipalCents: 500_000, Months: 12},
+		[]Provider{healthy, broken}, time.Second)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != "partial" || len(result.Offers) != 1 || result.Offers[0].Provider != "Healthy" {
+		t.Fatalf("healthy offer should survive a panicking provider: %+v", result)
+	}
+	if len(result.Failures) != 1 || result.Failures[0] != (Failure{"Broken", "unavailable"}) {
+		t.Fatalf("panic should be reported as unavailable: %+v", result.Failures)
+	}
+}
