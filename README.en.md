@@ -57,7 +57,7 @@ go test -race ./...
 go vet ./...
 ```
 
-Tests cover parallel calls, cancellation, provider timeouts, invalid offers, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend and runs the WebAssembly build against the same scenarios (`scripts/wasm-smoke.cjs`). Every change on `main` publishes the page to GitHub Pages through the [demo workflow](.github/workflows/pages.yml).
+Tests cover parallel calls, cancellation, provider timeouts, invalid offers, a provider that panics, duplicate provider-local IDs, total-cost ranking, and HTTP responses. [CI](.github/workflows/ci.yml) also builds the frontend and runs the WebAssembly build against the same scenarios (`scripts/wasm-smoke.cjs`). Every change on `main` publishes the page to GitHub Pages through the [demo workflow](.github/workflows/pages.yml).
 
 ## Postman, Insomnia, and verification
 

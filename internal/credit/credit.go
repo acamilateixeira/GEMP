@@ -3,6 +3,7 @@ package credit
 import (
 	"context"
 	"errors"
+	"log"
 	"math"
 	"slices"
 	"sort"
@@ -101,9 +102,17 @@ func Compare(ctx context.Context, req Request, providers []Provider, timeout tim
 	return result, nil
 }
 
-func quote(ctx context.Context, provider Provider, req Request) outcome {
-	terms, err := provider.Quote(ctx, req)
+func quote(ctx context.Context, provider Provider, req Request) (result outcome) {
 	id := provider.ID()
+	// A panic in one adapter runs in its own goroutine, where it would end the
+	// whole process (HTTP server included). It is reported like any other outage.
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("provider %s panicked: %v", id, recovered)
+			result = outcome{failure: Failure{id, "unavailable"}}
+		}
+	}()
+	terms, err := provider.Quote(ctx, req)
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
 		return outcome{failure: Failure{id, "timeout"}}
 	}

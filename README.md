@@ -57,7 +57,7 @@ go test -race ./...
 go vet ./...
 ```
 
-Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, IDs iguais entre provedores, custo total e respostas HTTP. O [CI](.github/workflows/ci.yml) também compila a interface e roda o build WebAssembly contra os mesmos cenários (`scripts/wasm-smoke.cjs`). A cada mudança na `main`, o [workflow da demo](.github/workflows/pages.yml) publica a página no GitHub Pages.
+Os testes cobrem chamadas simultâneas, cancelamento, prazo excedido, ofertas inválidas, provedor que entra em panic, IDs iguais entre provedores, custo total e respostas HTTP. O [CI](.github/workflows/ci.yml) também compila a interface e roda o build WebAssembly contra os mesmos cenários (`scripts/wasm-smoke.cjs`). A cada mudança na `main`, o [workflow da demo](.github/workflows/pages.yml) publica a página no GitHub Pages.
 
 ## Postman, Insomnia e verificação
 

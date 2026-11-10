@@ -22,7 +22,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - run: go test ./...
+      # Mesmas verificações do CI: o deploy não publica código que o CI recusaria.
+      - run: go vet ./...
+      - run: go test -race ./...
       - name: Build the comparison as WebAssembly
         run: |
           GOOS=js GOARCH=wasm go build -trimpath -ldflags="-s -w" -o frontend/public/gemp.wasm ./cmd/gemp-wasm
